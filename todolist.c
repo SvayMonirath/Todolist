@@ -1,12 +1,12 @@
-#include<stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include<string.h>
+#include <string.h>
 
-//define 
+// Define constants
 #define MAX_TASK_AMOUNT 30
 #define MAX_WORD_LIMIT 201
 
-//setup enum for better readability
+// Setup enum for better readability
 typedef enum {
     ADD_TASK,
     REMOVE_TASK,
@@ -14,69 +14,87 @@ typedef enum {
     EXIT
 } OPTIONS;
 
-//function prototype 
-void AddTask(int *task_count, char *task[]);
-int DisplayChoice (int *choice);
+// Function prototypes
+OPTIONS DisplayChoice();
+void AddTask(int *task_count, char **task_list);
+void View_task(int task_count, char **task_list);
+void Delete_task(int *task_count, char **task_list);
 
-//system function
+// System functions
 void pauseScreen();
 void clearScreen();
 
 int main(void) {
-
     OPTIONS options;
-    int task_count = 0, choice=0;//declare variables 
+    int task_count = 0;
 
-    char **Task = (char **)malloc(MAX_TASK_AMOUNT * sizeof(char *)); //allocate memory for list of pointers 
+    // Allocate memory for list of task pointers
+    char **Task = (char **)malloc(MAX_TASK_AMOUNT * sizeof(char *)); 
 
-    while(choice != 4) {
-        options = DisplayChoice(&choice);
+    do {
+        options = DisplayChoice();
 
-        switch (options-1)
-        {
-        case ADD_TASK:
-            AddTask(&task_count, Task);
-            break;
-            
-        case REMOVE_TASK:
+        switch (options) {
+            case ADD_TASK:
+                AddTask(&task_count, Task);
+                break;
 
-            break;
-        case VIEW_TASK:
+            case REMOVE_TASK:
+                View_task(task_count, Task);
+                if (task_count > 0) {
+                    Delete_task(&task_count, Task);
+                } else {
+                    pauseScreen();
+                }
+                break;
 
-            break;
-        case EXIT:
+            case VIEW_TASK:
+                View_task(task_count, Task);
+                break;
 
-            break;
-        default:
-            printf("Invalid Choice\n");
-            break;
+            case EXIT:
+                printf("Exiting.....\n");
+                break;
+
+            default:
+                printf("Invalid Choice\n");
+                break;
         }
-    }
+        pauseScreen();
+    } while (options != EXIT);
 
-    return 0; //code success
+    // Free allocated memory
+    for (int i = 0; i < task_count; i++) {
+        free(Task[i]);
+    }
+    free(Task);
+
+    return 0;
 }
 
-int DisplayChoice (int *choice) {
+OPTIONS DisplayChoice() {
+    int choice;
     clearScreen();
     printf("TODOLIST SYSTEM\n");
     printf("1. Add Task\n");
     printf("2. Delete Task\n");
     printf("3. View Task\n");
     printf("4. Exit\n");
-    printf("Choose an option: \n");
-    scanf("%d", choice);
+    printf("Choose an option: ");
+    scanf("%d", &choice);
 
-    return *choice;
+    // Return enum directly
+    return (OPTIONS)(choice - 1);
 }
 
 void AddTask(int *task_count, char **task_list) {
-    //check if task limit has been reached 
-    if (*task_count>= MAX_TASK_AMOUNT) { 
-        printf("You've reached the maximum number of task\n");
+    // Check if task limit has been reached 
+    if (*task_count >= MAX_TASK_AMOUNT) { 
+        printf("You've reached the maximum number of tasks\n");
     } else {
-        //allcate memory space
-        task_list[*task_count] = (char*)malloc(MAX_WORD_LIMIT * sizeof(char));
-        if(!task_list[*task_count]) {
+        // Allocate memory space for new task
+        task_list[*task_count] = (char *)malloc(MAX_WORD_LIMIT * sizeof(char));
+        if (!task_list[*task_count]) {
             printf("Memory allocation failed\n");
             pauseScreen();
             return;
@@ -87,25 +105,69 @@ void AddTask(int *task_count, char **task_list) {
 
         clearScreen();
 
-        //prompt user for task
+        // Prompt user for task
         printf("Enter task: ");
         fgets(task_list[*task_count], MAX_WORD_LIMIT, stdin);
 
-        //remove unwanted newline 
-         task_list[*task_count][strcspn( task_list[*task_count], "\n")] = '\0';
-        printf("Task added: %s\n",  task_list[*task_count]);
-
+        // Remove unwanted newline 
+        task_list[*task_count][strcspn(task_list[*task_count], "\n")] = '\0';
+        printf("Task added successfully\n");
         (*task_count)++;
-        pauseScreen();
     }
 }
 
+void View_task(int task_count, char **task_list) {
+    clearScreen(); 
+    if (task_count < 1) {
+        printf("No task found\n");
+    } else {
+        printf("Tasks: \n");
+        for (int i = 0; i < task_count; i++) {
+            printf("%d. %s\n", i + 1, task_list[i]);
+        }
+    }
+}
+
+void Delete_task(int *task_count, char **task_list) {
+    int delete_choice;
+    
+    // Check if there are any tasks to delete
+    if (*task_count == 0) {
+        printf("No tasks available to delete.\n");
+        return;
+    }
+
+    // Display the task list and ask user to choose a task to delete
+    printf("Choose a task number to remove: ");
+    scanf("%d", &delete_choice);
+
+    // Validate the input choice
+    if (delete_choice < 1 || delete_choice > *task_count) {
+        printf("Invalid choice. Please choose a valid task number.\n");
+    } else {
+        int index = delete_choice - 1;
+
+        // Free memory of the task being deleted
+        free(task_list[index]);
+
+        // Shift remaining tasks left to fill the gap
+        for (int i = index; i < *task_count - 1; i++) {
+            task_list[i] = task_list[i + 1];
+        }
+
+        // Decrement the task count after deletion
+        (*task_count)--;
+
+        printf("Task deleted successfully.\n");
+    }
+
+}
+
 void clearScreen() {
-    system("cls");
+    system("cls"); // use "clear" for Linux/Mac
 }
 
 void pauseScreen() {
-    // Portable pause screen
     printf("Press Enter to continue...");
     getchar();
     getchar();
